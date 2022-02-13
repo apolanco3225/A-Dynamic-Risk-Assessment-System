@@ -4,49 +4,72 @@ and returns a unique csv file
 Arturo Polanco Lozano
 February 2022
 """
-
-import os
-import sys
-import logging
+# import necessary packages
 import pandas as pd
+import numpy as np
+import os
+import json
 from datetime import datetime
-
-from config import DATA_PATH, INPUT_FOLDER_PATH
-
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+import logging
 
 
+logging.basicConfig(level=logging.INFO)
+
+#############Load config.json and get input and output paths
+with open('config.json','r') as f:
+    config = json.load(f) 
+
+input_folder_path = config['input_folder_path']
+output_folder_path = config['output_folder_path']
+
+
+#############Function for data ingestion
 def merge_multiple_dataframe():
-    """
-    Function for data ingestion. Check for datasets, combine them together,
-    drops duplicates and write metadata ingestedfiles.txt and ingested data
-    to finaldata.csv
-    """
-    df = pd.DataFrame()
-    file_names = []
+    # output master dataframe
+    output_dataframe = pd.DataFrame()
 
-    logging.info(f"Reading files from {INPUT_FOLDER_PATH}")
-    for file in os.listdir(INPUT_FOLDER_PATH):
-        file_path = os.path.join(INPUT_FOLDER_PATH, file)
-        df_tmp = pd.read_csv(file_path)
+    ingested_files = []
 
-        file = os.path.join(*file_path.split(os.path.sep)[-3:])
-        file_names.append(file)
+    file_list = os.listdir(input_folder_path)
+    logging.info(f"[INFO] Starting merging from folder {input_folder_path}.")
+    print(65*"-")
 
-        df = df.append(df_tmp, ignore_index=True)
+    for file in file_list:
+        logging.info(f"Reading {file}")
+        file_path = os.path.join(input_folder_path, file)
+        try:
+            data = pd.read_csv(file_path)
+        except:
+            logging.info(f"The file {file} has not a valid format.")
+            print(65*"-")
+            continue
 
-    logging.info("Dropping duplicates")
-    df = df.drop_duplicates().reset_index(drop=1)
+        output_dataframe = pd.concat([output_dataframe, data], ignore_index=True)
+        ingested_files.append(file)
 
-    logging.info("Saving ingested metadata")
-    with open(os.path.join(DATA_PATH, "ingestedfiles.txt"), "w") as file:
-        file.write(f"Ingestion date: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
-        file.write("\n".join(file_names))
+        logging.info(f"File {file} successfully merged.")
+        print(65*"-")
+    
+    logging.info("Dropping duplicated values.")
+    output_dataframe.drop_duplicates(inplace=True)
 
-    logging.info("Saving ingested data")
-    df.to_csv(os.path.join(DATA_PATH, "finaldata.csv"), index=False)
+    logging.info("Saving ingestion metadata.")
+    ingested_metadata_path = os.path.join(output_folder_path, 'ingested_files.txt')
+    
+    with open(ingested_metadata_path, "w") as file:
+        file.write(
+            f"Ingestion date: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n")
+        file.write("\n".join(ingested_files))
+
+    logging.info("Saving ingested data in csv file.")
+    output_data_path = os.path.join(output_folder_path, 'final_data.csv')
+    output_dataframe.to_csv(output_data_path, index=False)
+    logging.info("Done!")
+    
+            
 
 
-if __name__ == "__main__":
-    logging.info("Running ingestion.py")
+
+if __name__ == '__main__':
     merge_multiple_dataframe()
+
