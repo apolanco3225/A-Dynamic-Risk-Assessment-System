@@ -1,7 +1,7 @@
 { 
-    "input_folder_path": "sourcedata",
-    "output_folder_path": "ingesteddata", 
-    "test_data_path": "testdata", 
-    "output_model_path": "models", 
+    "input_folder_path": "data/source_data",
+    "output_folder_path": "data/ingested_data", 
+    "test_data_path": "data/test_data", 
+    "output_model_path": "model", 
     "prod_deployment_path": "production_deployment"
 }
