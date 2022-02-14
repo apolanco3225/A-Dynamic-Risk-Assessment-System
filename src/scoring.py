@@ -1,46 +1,54 @@
-import os
-import sys
-import pickle
-import logging
+"""
+Script for Scoring Machine Learning Model
+Author: Arturo Polanco
+Date: February 2022
+"""
 import pandas as pd
-from sklearn.metrics import f1_score
+import numpy as np
+import pickle
+import os
+import logging
+import pickle
+from sklearn import metrics
 
-from config import MODEL_PATH, TEST_DATA_PATH
+import json
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
+
+#################Load config.json and get path variables
+with open('config.json','r') as f:
+    config = json.load(f) 
+
+score_artifact_path = os.path.join(config['output_folder_path'], "latest_score.txt") 
+test_data_path = os.path.join(config['test_data_path'], "testdata.csv") 
+model_path = os.path.join(config['output_model_path'], "trained_model.pckl") 
+
+
+#################Function for model scoring
 def score_model():
-    """
-    Loads a trained model and the test data, and calculate an F1 score
-    for the model on the test data and saves the result to
-    the latestscore.txt file
-    """
-    logging.info("Loading testdata.csv")
-    test_df = pd.read_csv(os.path.join(TEST_DATA_PATH, 'testdata.csv'))
+    #this function should take a trained model, load test data, and calculate an F1 score for the model relative to the test data
+    #it should write the result to the latestscore.txt file
+    logging.info("Loading test data.")
+    test_data = pd.read_csv(test_data_path)
+    test_target = test_data.pop("exited")
+    test_features = test_data
+    test_features.drop(["corporation"], axis=1, inplace=True)
 
-    logging.info("Loading trained model")
-    model = pickle.load(
-        open(
-            os.path.join(
-                MODEL_PATH,
-                'trainedmodel.pkl'),
-            'rb'))
+    logging.info("Loading trained model.")
+    model_handler = open(model_path, "rb")
+    model = pickle.load(model_handler)
 
-    logging.info("Preparing test data")
-    y_true = test_df.pop('exited')
-    X_df = test_df.drop(['corporation'], axis=1)
+    logging.info("Model inference.")
+    predictions = model.predict(test_features)
+    f1_score_value = metrics.f1_score(predictions, test_target)
+    print(f"F1 Score Value: {f1_score_value}")
 
-    logging.info("Predicting test data")
-    y_pred = model.predict(X_df)
-    f1 = f1_score(y_true, y_pred)
-    print(f"f1 score = {f1}")
-
-    logging.info("Saving scores to text file")
-    with open(os.path.join(MODEL_PATH, 'latestscore.txt'), 'w') as file:
-        file.write(f"f1 score = {f1}")
+    logging.info("Saving scores in text file.")
+    with open(score_artifact_path, 'w') as file:
+        file.write(f"F1 Score Value: {f1_score_value}")
 
 
 if __name__ == '__main__':
-    logging.info("Running scoring.py")
     score_model()
