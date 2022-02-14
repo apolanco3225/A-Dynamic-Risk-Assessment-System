@@ -16,6 +16,7 @@ test_data.drop(columns=["corporation", "exited"], inplace=True)
 print(test_data.columns)
 
 outdated_modules = outdated_packages_list()
+outdated_modules = outdated_modules.decode('UTF-8')
 
 print(type(outdated_modules))
 print(outdated_modules)
