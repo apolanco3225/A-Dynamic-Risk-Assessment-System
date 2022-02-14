@@ -1,39 +1,63 @@
+"""
+Script for Deploying Machine Learning Model
+Author: Arturo Polanco
+Date: February 2022
+"""
+# import necessary packages
 import os
-import sys
-import shutil
+import json
+import shutil   
 import logging
 
-from config import DATA_PATH, MODEL_PATH, PROD_DEPLOYMENT_PATH
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
+##################Load config.json and correct path variable
+with open('config.json','r') as f:
+    config = json.load(f) 
+
+# model path
+trained_model_path = os.path.join(config['output_model_path'], "trained_model.pckl") 
+# score metadata path
+score_artifact_path = os.path.join(config['output_folder_path'], "latest_score.txt") 
+# ingested metadata path
+output_folder_path = config['output_folder_path']
+ingested_metadata_path = os.path.join(output_folder_path, 'ingested_files.txt')
+
+# production path 
+prod_deployment_path = os.path.join(config['prod_deployment_path']) 
+
+
+####################function for deployment
 def deploy_model():
-    """
-    Copy the latest model pickle file, the latestscore.txt value,
-    and the ingestfiles.txt file into the deployment directory
-    """
-    logging.info("Deploying trained model to production")
-    logging.info(
-        "Copying trainedmodel.pkl, ingestfiles.txt and latestscore.txt")
-    shutil.copy(
-        os.path.join(
-            DATA_PATH,
-            'ingestedfiles.txt'),
-        PROD_DEPLOYMENT_PATH)
-    shutil.copy(
-        os.path.join(
-            MODEL_PATH,
-            'trainedmodel.pkl'),
-        PROD_DEPLOYMENT_PATH)
-    shutil.copy(
-        os.path.join(
-            MODEL_PATH,
-            'latestscore.txt'),
-        PROD_DEPLOYMENT_PATH)
+    # Copy the following files into the deployment directory:
+    # 1. Model Pickle file 
+    # 2. Meta data latest_score.txt  
+    # 3. Meta data ingestfiles.txt 
 
+    logging.info("Deploying model in production.")
+    
+    shutil.copy(
+        trained_model_path,
+        prod_deployment_path
+    )
+    
+    shutil.copy(
+        score_artifact_path,
+        prod_deployment_path
+    )
+
+    shutil.copy(
+        ingested_metadata_path,
+        prod_deployment_path
+    )
+
+
+
+
+        
 
 if __name__ == '__main__':
-    logging.info("Running deployment.py")
     deploy_model()
 
