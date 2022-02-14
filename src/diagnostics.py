@@ -111,11 +111,11 @@ def outdated_packages_list():
     requirements_directory = os.path.join(current_working_directory, "../")
     requirements_path = os.path.join(requirements_directory, "requirements.txt")
 
-    outdated_dependencies = subprocess.run(
+    outdated_dependencies = subprocess.check_output(
         f'pip-outdated {requirements_path}',
         shell=True
     )
-
+    outdated_dependencies = outdated_dependencies.decode('UTF-8')
 
     return outdated_dependencies
 

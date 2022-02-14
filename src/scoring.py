@@ -43,12 +43,18 @@ def score_model():
     logging.info("Model inference.")
     predictions = model.predict(test_features)
     f1_score_value = metrics.f1_score(predictions, test_target)
-    print(f"F1 Score Value: {f1_score_value}")
+    f1_score_value = str(f1_score_value)
 
     logging.info("Saving scores in text file.")
+
     with open(score_artifact_path, 'w') as file:
         file.write(f"F1 Score Value: {f1_score_value}")
 
+    score_message = str(f"F1 Score Value: {f1_score_value}")
+    return score_message
+
+
 
 if __name__ == '__main__':
-    score_model()
+    message = score_model()
+    print(message)

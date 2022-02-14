@@ -1,12 +1,32 @@
+"""
+Script for Deploying Machine Learning Model as API
+Author: Arturo Polanco
+Date: February 2022
+"""
+# import necessary packages
+import pickle
+import json
+import os
+import re
 from flask import Flask, session, jsonify, request
 import pandas as pd
 import numpy as np
-import pickle
-import create_prediction_model
-import diagnosis 
-import predict_exited_from_saved_model
-import json
-import os
+import subprocess
+from diagnostics import execution_time
+from diagnostics import missing_data_percentage
+from diagnostics import dataframe_summary
+from diagnostics import outdated_packages_list
+from diagnostics import model_predictions
+
+with open('config.json','r') as file:
+    config = json.load(file) 
+
+# ingested data path
+output_folder_path = config['output_folder_path']
+ingested_data_path = os.path.join(output_folder_path, 'final_data.csv')
+
+test_data = pd.read_csv(ingested_data_path)
+test_data.drop(columns=["corporation", "exited"], inplace=True)
 
 
 
@@ -14,37 +34,60 @@ import os
 app = Flask(__name__)
 app.secret_key = '1652d576-484a-49fd-913a-6879acfa6ba4'
 
-with open('config.json','r') as f:
-    config = json.load(f) 
+with open('config.json','r') as file:
+    config = json.load(file) 
 
 dataset_csv_path = os.path.join(config['output_folder_path']) 
 
 prediction_model = None
 
 
+@app.route('/')
+def index():
+    return "Greetings World!"
+
+
+
 #######################Prediction Endpoint
 @app.route("/prediction", methods=['POST','OPTIONS'])
 def predict():        
-    #call the prediction function you created in Step 3
-    return #add return value for prediction outputs
+    data_json = request.get_json()
+    data = pd.DataFrame(data_json['data'])
+    data.drop(columns=['corporation', 'exited'], inplace=True)
+    print(data)
+    predictions = model_predictions(data)
+    print(predictions)
+    return jsonify(predictions)
 
 #######################Scoring Endpoint
 @app.route("/scoring", methods=['GET','OPTIONS'])
-def stats():        
-    #check the score of the deployed model
-    return #add return value (a single F1 score number)
+def scoring_data():        
+    output_score = subprocess.check_output('python src/scoring.py',
+                            shell=True)
+    output_score = output_score.decode('UTF-8')
+        
+    return jsonify(output_score)
 
 #######################Summary Statistics Endpoint
 @app.route("/summarystats", methods=['GET','OPTIONS'])
-def stats():        
-    #check means, medians, and modes for each column
-    return #return a list of all calculated summary statistics
+def summary_statistics_data():    
+    summary = dataframe_summary(test_data)
+    return jsonify(summary)
+
 
 #######################Diagnostics Endpoint
 @app.route("/diagnostics", methods=['GET','OPTIONS'])
-def stats():        
+def measure_time_exectution():        
     #check timing and percent NA values
-    return #add return value for all diagnostics
+    time = execution_time()
+    missing_data = missing_data_percentage(test_data)
+    outdated_modules = outdated_packages_list()
 
-if __name__ == "__main__":    
+    return jsonify(
+        time,
+        missing_data, 
+        #outdated_modules
+    )
+
+if __name__ == "__main__": 
     app.run(host='0.0.0.0', port=8000, debug=True, threaded=True)
