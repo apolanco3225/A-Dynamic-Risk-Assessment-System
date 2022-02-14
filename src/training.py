@@ -1,55 +1,63 @@
-import os
-import sys
-import pickle
-import logging
+"""
+Script for Training Machine Learning Model
+Author: Arturo Polanco
+Date: February 2022
+"""
+# import necessary packages
 import pandas as pd
+import numpy as np
+import pickle
+import os
+import logging
 from sklearn.linear_model import LogisticRegression
+import json
 
-from config import MODEL_PATH, DATA_PATH
-
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 
+###################Load config.json and get path variables
+with open('config.json','r') as f:
+    config = json.load(f) 
+
+dataset_csv_path = os.path.join(config['output_folder_path'], "final_data.csv") 
+model_path = os.path.join(config['output_model_path'], "trained_model.pckl") 
+
+
+#################Function for training the model
 def train_model():
-    """
-    Train logistic regression model on ingested data and
-    and saves the model
-    """
-    logging.info("Loading and preparing finaldata.csv")
-    data_df = pd.read_csv(os.path.join(DATA_PATH, 'finaldata.csv'))
-    y_df = data_df.pop('exited')
-    X_df = data_df.drop(['corporation'], axis=1)
 
+    logging.info("Loading data.")
+    data = pd.read_csv(dataset_csv_path)
+    target = data.pop("exited")
+    features = data.drop("corporation", axis=1)
+    
+    #use this logistic regression for training
     model = LogisticRegression(
-        C=1.0,
-        class_weight=None,
-        dual=False,
+        C=1.0, 
+        class_weight=None, 
+        dual=False, 
         fit_intercept=True,
         intercept_scaling=1,
         l1_ratio=None,
-        max_iter=100,
-        multi_class='auto',
-        n_jobs=None,
-        penalty='l2',
-        random_state=0,
-        solver='liblinear',
-        tol=0.0001,
-        verbose=0,
-        warm_start=False)
+        max_iter=100,            
+        multi_class='auto', 
+        n_jobs=None, 
+        penalty='l2',            
+        random_state=0, 
+        solver='liblinear', 
+        tol=0.0001, 
+        verbose=0,            
+        warm_start=False
+        )
+    
+    #fit the logistic regression to your data
+    logging.info("Training machine learning algorithm.")
+    model.fit(features, target)
+    #write the trained model to your workspace in a file called trainedmodel.pkl
+    logging.info("Saving model.")
+    model_handler = open(model_path, "wb")
+    pickle.dump(model, model_handler)
 
-    logging.info("Training model")
-    model.fit(X_df, y_df)
-
-    logging.info("Saving trained model")
-    pickle.dump(
-        model,
-        open(
-            os.path.join(
-                MODEL_PATH,
-                'trainedmodel.pkl'),
-            'wb'))
-
-
-if __name__ == '__main__':
-    logging.info("Running training.py")
+if __name__ == "__main__":
     train_model()
+
